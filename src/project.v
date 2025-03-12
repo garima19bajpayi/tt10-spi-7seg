@@ -53,7 +53,7 @@ module spi_slave_sevenseg (
                 shift_reg <= {shift_reg[4:0], mosi};
                 bit_count <= bit_count + 1;
                 
-                if (bit_count == 5) begin // 6th bit received
+                if (bit_count == 6) begin // 6th bit received
                     update_display <= 1;
                 end
             end
