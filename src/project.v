@@ -16,13 +16,13 @@ module tt_um_gxrii_spi_sevenseg (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  spi_slave_sevenseg top(.sclk(ui_in[7]), .mosi(ui_in[1]), .ss(ui_in[0]), .rst_n(rst_n), .out(uo_out[7:0])); 
+  spi_slave_sevenseg top(.sclk(clk), .mosi(ui_in[1]), .ss(ui_in[0]), .rst_n(rst_n), .out(uo_out[7:0])); 
 
   assign uio_out = 0;
   assign uio_oe  = 0;
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, uio_in[7:0], ui_in[6:2], 1'b0};
+  wire _unused = &{ena, uio_in[7:0], ui_in[7:2], 1'b0};
 
 endmodule
 
