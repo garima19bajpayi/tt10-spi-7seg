@@ -37,6 +37,28 @@ module spi_slave_sevenseg (
     reg [5:0] shift_reg; // 6-bit shift register (2-bit command + 4-bit data)
     reg [2:0] bit_count; // Track received bits
     reg [6:0] segment_data;
+    reg update_display;
+
+    always @(posedge sclk or negedge rst_n) begin
+        if (!rst_n) begin
+            bit_count <= 0;
+            shift_reg <= 0;
+            out <= 0;
+            update_display <= 0;
+        end else begin
+            if (ss) begin
+                bit_count <= 0;
+                update_display <= 0;
+            end else begin
+                shift_reg <= {shift_reg[4:0], mosi};
+                bit_count <= bit_count + 1;
+                
+                if (bit_count == 5) begin // 6th bit received
+                    update_display <= 1;
+                end
+            end
+        end
+    end
 
     always @(*) begin
         case (shift_reg[3:0])
@@ -61,32 +83,21 @@ module spi_slave_sevenseg (
     end
 
     always @(posedge sclk) begin
-        if (!rst_n) begin
-            bit_count <= 0;
-            shift_reg <= 0;
-            out <= 0;
-        end else begin
-            if (ss) begin
-                bit_count <= 0;
-            end else begin
-                shift_reg <= {shift_reg[4:0], mosi};
-                bit_count <= bit_count + 1;
-                
-                if (bit_count == 5) begin // 6th bit received
-                    if (shift_reg[5:4] == 2'b10) begin // Display data
-                        out[6:0] <= segment_data;
-                        out[7] <= 0; // Turn off decimal point
-                    end
-                    else if (shift_reg[5:4] == 2'b01) begin // Display data with decimal point on
-                        out[6:0] <= segment_data;
-                        out[7] <= 1; // Turn on decimal point
-                    end
-                    else begin
-                        out[6:0] <= 0; // switch off the display for malformed commands
-                        out[7] <= 1;   // but switch on the decimal point
-                    end
+        if (update_display) begin
+            case (shift_reg[5:4])
+                2'b10: begin // Display data
+                    out[6:0] <= segment_data;
+                    out[7] <= 0; // Turn off decimal point
                 end
-            end
+                2'b01: begin // Display data with decimal point on
+                    out[6:0] <= segment_data;
+                    out[7] <= 1; // Turn on decimal point
+                end
+                default: begin
+                    out[6:0] <= 7'b0000000; // Switch off display for malformed commands
+                    out[7] <= 1; // But switch on the decimal point
+                end
+            endcase
         end
     end
 endmodule

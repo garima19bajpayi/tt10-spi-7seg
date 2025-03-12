@@ -26,12 +26,32 @@ async def spi_slave_sevenseg_test(dut):
         """Helper function to send SPI data"""
         full_data = (command << 4) | data
         dut.ui_in[0].value = 0  # Select slave
+
+        for i in range(6):
+            dut.ui_in[1].value = (full_data >> (5 - i)) & 1  # Set MOSI
+            await Timer(1, units="ns")  # Ensure MOSI is stable
+            await RisingEdge(dut.clk)  # Clock the data in
+
+        await Timer(1, units="ns")  # Allow processing time
+        dut.ui_in[0].value = 1  # Deselect slave
+        await RisingEdge(dut.clk)  # Ensure slave registers data
+
+        # Debug print after transfer
+        print(f"Sent: cmd={command:02b}, data={data:01X}, Received Output: {int(dut.uo_out.value):08b}")
+    '''
+    async def spi_transfer(command, data):
+        """Helper function to send SPI data"""
+        full_data = (command << 4) | data
+        dut.ui_in[0].value = 0  # Select slave
         for i in range(6):
             dut.ui_in[1].value = (full_data >> (5 - i)) & 1  # MOSI
             await RisingEdge(dut.clk)  # SCLK
         dut.ui_in[0].value = 1  # Deselect slave
         await RisingEdge(dut.clk)
-    
+        
+        # Debug print after transfer
+        print(f"Sent: cmd={command:02b}, data={data:01X}, Received Output: {int(dut.uo_out.value):08b}")
+    '''
     # Define expected outputs for valid cases
     seven_seg_map = {
         0x0: 0x3F, 0x1: 0x06, 0x2: 0x5B, 0x3: 0x4F,
@@ -56,3 +76,4 @@ async def spi_slave_sevenseg_test(dut):
         for data in range(16):
             await spi_transfer(command, data)
             assert dut.uo_out.value == 0x80, f"Failed for malformed {command:02b} {data:X}"
+
