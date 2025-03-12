@@ -36,8 +36,6 @@ module spi_slave_sevenseg (
 
     reg [5:0] shift_reg; // 6-bit shift register (2-bit command + 4-bit data)
     reg [2:0] bit_count; // Track received bits
-    reg [3:0] blink_count;
-    reg dp_state;
     reg [6:0] segment_data;
 
     always @(*) begin
@@ -65,8 +63,6 @@ module spi_slave_sevenseg (
     always @(posedge sclk) begin
         if (!rst_n) begin
             bit_count <= 0;
-            blink_count <= 0;
-            dp_state <= 0;
             shift_reg <= 0;
             out <= 0;
         end else begin
@@ -81,26 +77,17 @@ module spi_slave_sevenseg (
                         out[6:0] <= segment_data;
                         out[7] <= 0; // Turn off decimal point
                     end
-                    else if (shift_reg[5:4] == 2'b01) begin // Blink decimal point
-                        blink_count <= 4;
-                        dp_state <= 1;
+                    else if (shift_reg[5:4] == 2'b01) begin // Display data with decimal point on
+                        out[6:0] <= segment_data;
+                        out[7] <= 1; // Turn on decimal point
+                    end
+                    else begin
+                        out[6:0] <= 0; // switch off the display for malformed commands
+                        out[7] <= 1;   // but switch on the decimal point
                     end
                 end
             end
         end
     end
-
-    always @(posedge sclk) begin
-        if (!rst_n) begin
-            dp_state <= 0;
-            blink_count <= 0;
-        end else if (blink_count > 0) begin
-            dp_state <= ~dp_state;
-            out[7] <= dp_state;
-            blink_count <= blink_count - 1;
-        end
-    end
-
 endmodule
-
 
